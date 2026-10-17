@@ -1,0 +1,139 @@
+{
+  "name": "vscode-shortcut-tutor",
+  "displayName": "Shortcut Tutor",
+  "description": "Shows the keyboard shortcuts most worth learning right now and gives tips when something would be faster with a shortcut.",
+  "icon": "media/icon.png",
+  "version": "0.1.0",
+  "publisher": "eci99",
+  "author": {
+    "name": "Janos Kovac"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eci99/vscode-shortcut-tutor.git"
+  },
+  "homepage": "https://github.com/eci99/vscode-shortcut-tutor#readme",
+  "bugs": {
+    "url": "https://github.com/eci99/vscode-shortcut-tutor/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Keymaps",
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "shortcutTutor",
+          "title": "Shortcuts",
+          "icon": "media/keyboard.svg"
+        }
+      ]
+    },
+    "views": {
+      "shortcutTutor": [
+        {
+          "type": "webview",
+          "id": "shortcutTutor.view",
+          "name": "Useful Now"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "shortcutTutor.show",
+        "title": "Show Useful Shortcuts",
+        "category": "Shortcut Tutor"
+      },
+      {
+        "command": "shortcutTutor.chooseFocus",
+        "title": "Choose Learning Focus",
+        "category": "Shortcut Tutor",
+        "icon": "$(target)"
+      },
+      {
+        "command": "shortcutTutor.editReasons",
+        "title": "Edit Reasons",
+        "category": "Shortcut Tutor",
+        "icon": "$(settings-gear)"
+      }
+    ],
+    "configuration": {
+      "title": "Shortcut Tutor",
+      "properties": {
+        "shortcutTutor.notifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show tips when something was done the slow way that a shortcut would make faster."
+        },
+        "shortcutTutor.keyboardLayout": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "us",
+            "uk",
+            "de",
+            "ch-de",
+            "fr",
+            "es",
+            "it",
+            "sv"
+          ],
+          "enumDescriptions": [
+            "Guess from the system locale (e.g. de_DE → German, en_GB → English UK, otherwise US)",
+            "English (US)",
+            "English (UK)",
+            "German",
+            "Swiss German",
+            "French (AZERTY)",
+            "Spanish",
+            "Italian",
+            "Swedish / Finnish"
+          ],
+          "markdownDescription": "Keyboard layout used to label keys that VS Code defines by physical position (shown as e.g. `[Equal]` in the default keybindings). Extensions cannot read the layout, so choose yours here."
+        },
+        "shortcutTutor.reasons": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Overrides for the reasons used in “Useful Now” (only differences from the defaults). Easiest to edit via **Shortcut Tutor: Edit Reasons** or the gear button in the view."
+        }
+      }
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "shortcutTutor.chooseFocus",
+          "when": "view == shortcutTutor.view",
+          "group": "navigation@1"
+        },
+        {
+          "command": "shortcutTutor.editReasons",
+          "when": "view == shortcutTutor.view",
+          "group": "navigation@2"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npx --yes @vscode/vsce package"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}

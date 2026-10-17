@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- background -->
+  <rect width="128" height="128" rx="26" fill="#2f9e44"/>
+
+  <!-- key: front lip, top face -->
+  <rect x="20" y="20" width="88" height="92" rx="14" fill="#b9c3e6"/>
+  <rect x="20" y="20" width="88" height="82" rx="14" fill="#f4f6fc"/>
+
+  <!-- check mark -->
+  <path d="M42 62l15 15 30-32" fill="none" stroke="#2f9e44" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
