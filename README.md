@@ -2,7 +2,7 @@
 
 Learn the keyboard shortcuts that matter **right now**. Shortcut Tutor watches what you are doing in VS Code, shows the shortcuts most worth learning in the current situation, and gives you a tip when you do something the slow way.
 
-Open it from the **keyboard icon** in the Activity Bar, or run **Shortcut Tutor: Show Useful Shortcuts** from the Command Palette.
+Open it from the **keyboard icon** in the Activity Bar, or run **Shortcut Tutor: Show Useful Shortcuts** from the Command Palette. `Ctrl+Alt+Shift+K` (macOS: `Cmd+Alt+Shift+K`) toggles the view.
 
 > **Author's note:** My idea for an extension to learn shortcuts for VS Code – let's see if it helps …
 

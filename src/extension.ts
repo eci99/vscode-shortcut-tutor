@@ -70,6 +70,10 @@ class ShortcutViewProvider implements vscode.WebviewViewProvider {
     return info;
   }
 
+  isVisible(): boolean {
+    return !!this.view?.visible;
+  }
+
   resolveWebviewView(view: vscode.WebviewView): void {
     this.view = view;
     const mediaUri = vscode.Uri.joinPath(this.context.extensionUri, 'media');
@@ -226,6 +230,11 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand('shortcutTutor.show', () =>
       vscode.commands.executeCommand(`${ShortcutViewProvider.viewId}.focus`),
+    ),
+    vscode.commands.registerCommand('shortcutTutor.toggle', () =>
+      provider.isVisible()
+        ? vscode.commands.executeCommand('workbench.action.closeSidebar')
+        : vscode.commands.executeCommand(`${ShortcutViewProvider.viewId}.focus`),
     ),
     vscode.commands.registerCommand('shortcutTutor.chooseFocus', chooseFocus),
     vscode.commands.registerCommand('shortcutTutor.editReasons', () =>

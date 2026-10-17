@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.1] – 2026-10-18
+
+### Added
+
+- `Ctrl+Alt+Shift+K` / **Shortcut Tutor: Toggle Useful Shortcuts View** shows or hides the view.
+
 ## [0.1.0] – 2026-10-18
 
 First release.

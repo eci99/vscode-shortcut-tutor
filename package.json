@@ -3,7 +3,7 @@
   "displayName": "Shortcut Tutor",
   "description": "Shows the keyboard shortcuts most worth learning right now and gives tips when something would be faster with a shortcut.",
   "icon": "media/icon.png",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "eci99",
   "author": {
     "name": "Janos Kovac"
@@ -54,6 +54,11 @@
         "category": "Shortcut Tutor"
       },
       {
+        "command": "shortcutTutor.toggle",
+        "title": "Toggle Useful Shortcuts View",
+        "category": "Shortcut Tutor"
+      },
+      {
         "command": "shortcutTutor.chooseFocus",
         "title": "Choose Learning Focus",
         "category": "Shortcut Tutor",
@@ -64,6 +69,13 @@
         "title": "Edit Reasons",
         "category": "Shortcut Tutor",
         "icon": "$(settings-gear)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "shortcutTutor.toggle",
+        "key": "ctrl+alt+shift+k",
+        "mac": "cmd+alt+shift+k"
       }
     ],
     "configuration": {
