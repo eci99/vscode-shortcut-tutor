@@ -4,6 +4,8 @@ Learn the keyboard shortcuts that matter **right now**. Shortcut Tutor watches w
 
 Open it from the **keyboard icon** in the Activity Bar, or run **Shortcut Tutor: Show Useful Shortcuts** from the Command Palette.
 
+> **Author's note:** My idea for an extension to learn shortcuts for VS Code – let's see if it helps …
+
 ![Shortcut Tutor in action: the list adapts to a selection, a tip suggests Copy Line Down, “Got it” marks it as learned, and a learning focus boosts terminal and debugging shortcuts](docs/demo.gif)
 
 ## Features
