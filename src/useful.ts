@@ -29,6 +29,7 @@ function situationBoosts(reasons: Map<string, Reason>): Map<string, Boost[]> {
     }
   };
 
+  add(signal('boosted'));
   const editor = vscode.window.activeTextEditor;
   const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
   if (tab?.isDirty) {

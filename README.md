@@ -27,6 +27,29 @@ Choose the areas you want to learn: Editing, Navigation, Code Intelligence, Sear
 
 Click the line at the top of the view, the **target button** in the view's title bar, or run **Shortcut Tutor: Choose Learning Focus**.
 
+Each chosen area also gets its own collapsible section above **Learned**, for example **Focus: Navigation (42)**. It lists every shortcut of the area, not only those that fit the current situation. Learned shortcuts are dimmed there.
+
+### Boost
+
+Click **☆** next to a shortcut in a focus section or in the search results to boost it. It turns into a yellow **★**, gets a bonus (8 by default) and moves up in “Useful Now” with the reason **Boosted**. It still only appears when it applies in the current situation. Click **★** again to remove the boost.
+
+Boosted shortcuts are listed under the reason **Boosted by you** in **Edit Reasons**, where you can change their bonus or remove them.
+
+### Search
+
+The search field at the top of the view searches **all** shortcuts, regardless of the current situation, by name, command ID or key. Keys can be typed as VS Code stores them (`ctrl+k`) or as they are shown (`Ctrl+K`). With several words, all of them must match, e.g. `line ctrl`. `Esc` clears the search. At most 100 results are shown.
+
+### Filter by shortcut
+
+Click **⌨** next to the search field and press keys to find out what they do, just like “Record Keys” in the Keyboard Shortcuts editor:
+
+- The list filters live while you hold keys: holding `Ctrl` lists all `Ctrl` shortcuts, adding `Shift` narrows them to `Ctrl+Shift`.
+- Pressing a main key records the combination. Exact matches come first, followed by shortcuts that need more keys: additional modifiers (`Ctrl+K` also finds `Ctrl+Shift+K`) or a second chord (`Ctrl+K` also finds `Ctrl+K Ctrl+S`).
+- A second combination narrows the list to that chord sequence.
+- `Esc` clears the recorded keys, a second `Esc` ends recording. Clicking **⌨** again also ends it.
+
+Letters and digits follow your keyboard layout, as in VS Code. Other keys are matched by their position on a US keyboard and by scan code (`[Equal]`).
+
 ### Tips
 
 Shortcut Tutor notices common slow workflows and suggests the matching shortcut:
@@ -53,7 +76,7 @@ Hover an entry and click **✓** to mark the shortcut as learned. It disappears 
 
 ### Change a shortcut
 
-Hover an entry and click **✎** to open the Keyboard Shortcuts editor filtered to that command.
+Hover an entry and click **✎** to open the Keyboard Shortcuts editor filtered to that command. Hovering the title shows the command ID and the `when` clauses of its bindings.
 
 ### Edit Reasons
 
@@ -90,6 +113,7 @@ Example: `Ctrl+Shift+[Equal]` is shown as `Ctrl+Shift+´` on a German keyboard.
 - **VS Code does not report which commands you run.** Shortcut Tutor cannot tell whether you already use a shortcut. Tips are based on what is observable: text changes, mouse vs. keyboard selection and editor switches. Mark shortcuts you know with **Got it**.
 - **Focus is assumed to be in the editor.** VS Code does not reveal where keyboard focus is, so shortcuts for the terminal or lists are not boosted by focus.
 - **Context keys from other extensions** cannot be read. Shortcuts that depend on them are never hidden, but they are not boosted either.
+- **Filter by shortcut and punctuation keys:** since the keyboard layout cannot be read, punctuation keys are matched by their US position. On other layouts a recorded punctuation key may find the wrong shortcuts.
 - **Areas are derived from command IDs.** Commands of extensions with their own namespace (e.g. `markdown.*`) belong to no area.
 - **Settings profiles:** only the `keybindings.json` of the default profile is read.
 
@@ -106,7 +130,7 @@ To build and install a package:
 
 ```bash
 npm run package
-code --install-extension vscode-shortcut-tutor-0.1.0.vsix
+code --install-extension vscode-shortcut-tutor-0.1.2.vsix
 ```
 
 ## License

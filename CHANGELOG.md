@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.2] – 2026-10-18
+
+### Added
+
+- Above **Learned**, a collapsible section for each chosen learning focus area lists all of its shortcuts; learned ones are dimmed and can be undone there.
+- **★** in these sections boosts a single shortcut so it ranks higher in **Useful Now**. Boosted shortcuts are listed under the new reason **Boosted by you** in the Reasons editor, where their bonus can be changed.
+- **Search** field at the top of the view: finds shortcuts by name, command id or key (e.g. `ctrl+k`) across all shortcuts, regardless of the current situation. Results can be marked as learned, boosted or edited; `Esc` clears the search.
+- **Filter by shortcut**: with **⌨** next to the search field, pressing keys shows what they do, followed by shortcuts that need more keys: additional modifiers (`Ctrl+K` also lists `Ctrl+Shift+K`) or further chords (`Ctrl+K Ctrl+S`). Filters live while keys are held: holding `Ctrl` lists all `Ctrl` shortcuts, adding `Shift` narrows them. `Esc` clears the recorded keys, a second `Esc` ends recording.
+- Hovering a shortcut's title also shows the **when** clause of its bindings.
+
 ## [0.1.1] – 2026-10-18
 
 ### Added

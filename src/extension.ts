@@ -5,17 +5,23 @@ import { buildContext, Context, isRelevant } from './context';
 import { rankUseful } from './useful';
 import { NudgeTracker } from './nudges';
 import { invalidateReasons, reason, saveReason } from './reasons';
-import { AREAS_FOR_SELECTION } from './areas';
+import { AREAS_FOR_SELECTION, areaOf } from './areas';
 import { CommandInfo, ReasonsEditor } from './reasonsEditor';
 
 const KNOWN_KEY = 'shortcutTutor.known';
+/** Search results beyond this are left out to keep the view fast. */
+const MAX_RESULTS = 100;
 
 /** An entry as displayed by the webview. */
 interface Entry {
   command: string;
   title: string;
   keys: string[];
+  /** When clauses of the displayed bindings; "" for a binding that always applies. */
+  whens: string[];
   reasons?: string[];
+  known?: boolean;
+  boosted?: boolean;
 }
 
 class ShortcutViewProvider implements vscode.WebviewViewProvider {
@@ -24,6 +30,15 @@ class ShortcutViewProvider implements vscode.WebviewViewProvider {
   private shortcuts: Shortcut[] = [];
   private updateTimer?: NodeJS.Timeout;
   private lastPayload = '';
+  /** Search text from the view; while set, the view shows matching shortcuts instead of its lists. */
+  private query = '';
+  /**
+   * Recorded key sequence from the view: per chord the modifiers and the accepted
+   * spellings of the main key, e.g. [{ mods: ["ctrl"], mains: ["=", "[equal]"] }];
+   * no mains (while only modifiers are held) means any main key.
+   * While set, it replaces the search text.
+   */
+  private keys: RecordedChord[] = [];
   readonly nudges: NudgeTracker;
 
   constructor(private readonly context: vscode.ExtensionContext) {
@@ -100,6 +115,14 @@ class ShortcutViewProvider implements vscode.WebviewViewProvider {
         case 'chooseFocus':
           await chooseFocus();
           break;
+        case 'boost':
+          await setBoosted(msg.command, msg.boosted);
+          break;
+        case 'search':
+          this.query = String(msg.query ?? '').trim().toLowerCase();
+          this.keys = Array.isArray(msg.keys) ? msg.keys : [];
+          this.update();
+          break;
       }
     });
   }
@@ -116,6 +139,7 @@ class ShortcutViewProvider implements vscode.WebviewViewProvider {
       command,
       title: bindings[0]?.title ?? command,
       keys: [...new Set(bindings.map((s) => s.key))],
+      whens: [...new Set(bindings.map((s) => s.when ?? ''))],
     };
   }
 
@@ -140,9 +164,30 @@ class ShortcutViewProvider implements vscode.WebviewViewProvider {
       .sort((a, b) => a.title.localeCompare(b.title));
 
     const focus = reason('focus');
-    const focusNames = focus.enabled
-      ? AREAS_FOR_SELECTION.filter((a) => focus.areas?.includes(a.id)).map((a) => a.name)
-      : [];
+    const focusAreas = focus.enabled ? AREAS_FOR_SELECTION.filter((a) => focus.areas?.includes(a.id)) : [];
+    // All shortcuts of each chosen area, regardless of the current situation.
+    const areaShortcuts = focusAreas.map((a) => ({
+      id: a.id,
+      name: a.name,
+      entries: this.collect((s) => areaOf(s.command)?.id === a.id, known),
+    }));
+    // Every word must appear in the title, the command id or the key (as stored or as displayed).
+    const words = this.query.split(/\s+/).filter(Boolean);
+    const keys = this.keys;
+    const results = keys.length
+      ? // Exact matches first, then those that need more modifiers or further chords.
+        (() => {
+          const exact = this.collect((s) => matchesKeys(s.key, keys) === 'exact', known);
+          const exactCommands = new Set(exact.map((e) => e.command));
+          const more = this.collect((s) => !!matchesKeys(s.key, keys), known).filter((e) => !exactCommands.has(e.command));
+          return [...exact, ...more];
+        })()
+      : words.length
+        ? this.collect((s) => {
+            const text = `${s.title} ${s.command} ${s.key} ${formatKey(s.key)}`.toLowerCase();
+            return words.every((w) => text.includes(w));
+          }, known)
+        : undefined;
     const payload = JSON.stringify({
       type: 'data',
       platform: process.platform,
@@ -151,13 +196,46 @@ class ShortcutViewProvider implements vscode.WebviewViewProvider {
       tip,
       useful,
       learned,
-      focus: focusNames,
+      focus: focusAreas.map((a) => a.name),
+      areaShortcuts,
+      results: results?.slice(0, MAX_RESULTS),
+      resultCount: results?.length,
     });
     // Cursor movements trigger frequent updates – only redraw on real changes.
     if (payload !== this.lastPayload) {
       this.lastPayload = payload;
       this.view.webview.postMessage(JSON.parse(payload));
     }
+  }
+
+  /**
+   * Entries for all commands with at least one matching binding, regardless of
+   * the current situation, sorted by title.
+   */
+  private collect(test: (s: Shortcut) => boolean, known: Set<string>): Entry[] {
+    const boosted = reason('boosted');
+    const entries = new Map<string, Entry>();
+    for (const s of this.shortcuts) {
+      if (!s.key || !test(s)) {
+        continue;
+      }
+      const e = entries.get(s.command) ?? {
+        command: s.command,
+        title: s.title,
+        keys: [],
+        whens: [],
+        known: known.has(s.command),
+        boosted: boosted.enabled && s.command in (boosted.commands ?? {}),
+      };
+      if (!e.keys.includes(s.key)) {
+        e.keys.push(s.key);
+      }
+      if (!e.whens.includes(s.when ?? '')) {
+        e.whens.push(s.when ?? '');
+      }
+      entries.set(s.command, e);
+    }
+    return [...entries.values()].sort((x, y) => x.title.localeCompare(y.title));
   }
 
   /** For frequent events such as cursor movements. */
@@ -181,16 +259,51 @@ class ShortcutViewProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   <button id="focus" class="focus" title="Choose the areas you want to learn"></button>
-  <div id="tip" class="tip" hidden></div>
-  <ul id="useful" class="list"><li class="empty">Loading shortcuts …</li></ul>
-  <details id="learned-box" class="learned">
-    <summary>Learned (<span id="learned-count">0</span>)</summary>
-    <ul id="learned" class="list"></ul>
-  </details>
+  <div class="search">
+    <input id="search" type="search" placeholder="Search shortcuts by name, command or key …" spellcheck="false">
+    <button id="record" class="record" title="Filter by shortcut: press the keys to find what they do (Esc clears, a second Esc stops)">⌨</button>
+  </div>
+  <ul id="results" class="list" hidden></ul>
+  <div id="main">
+    <div id="tip" class="tip" hidden></div>
+    <ul id="useful" class="list"><li class="empty">Loading shortcuts …</li></ul>
+    <div id="areas"></div>
+    <details id="learned-box" class="section">
+      <summary>Learned (<span id="learned-count">0</span>)</summary>
+      <ul id="learned" class="list"></ul>
+    </details>
+  </div>
   <script nonce="${nonce}" src="${script}"></script>
 </body>
 </html>`;
   }
+}
+
+interface RecordedChord {
+  mods: string[];
+  mains: string[];
+}
+
+/**
+ * Whether a binding matches the recorded chords: "exact", or "more" if it needs
+ * additional modifiers (Ctrl+K also finds Ctrl+Shift+K) or further chords
+ * (Ctrl+K also finds Ctrl+K Ctrl+S).
+ */
+function matchesKeys(key: string, recorded: RecordedChord[]): 'exact' | 'more' | undefined {
+  const chords = key.split(' ');
+  let exact = chords.length === recorded.length;
+  for (const [i, r] of recorded.entries()) {
+    if (!chords[i]) {
+      return undefined;
+    }
+    const parts = chords[i].split(/\+(?!$)/);
+    const main = parts.pop()!;
+    if ((r.mains.length && !r.mains.includes(main)) || !r.mods.every((m) => parts.includes(m))) {
+      return undefined;
+    }
+    exact &&= parts.length === r.mods.length;
+  }
+  return exact ? 'exact' : 'more';
 }
 
 /** Lets the user pick the areas to learn; they are stored with the "focus" reason. */
@@ -209,6 +322,19 @@ async function chooseFocus(): Promise<void> {
     bonus: focus.bonus,
     areas: picked.map((p) => p.id),
   });
+}
+
+/** Adds a command to the "boosted" reason with its default bonus, or removes it. */
+async function setBoosted(command: string, on: boolean): Promise<void> {
+  const boosted = reason('boosted');
+  const commands = { ...boosted.commands };
+  if (on) {
+    commands[command] = boosted.params.boost.value;
+  } else {
+    delete commands[command];
+  }
+  // Boosting a shortcut while the reason is turned off would have no effect.
+  await saveReason('boosted', { enabled: on || boosted.enabled, label: boosted.label, commands });
 }
 
 export function activate(context: vscode.ExtensionContext): void {

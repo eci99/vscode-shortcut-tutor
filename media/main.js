@@ -7,7 +7,12 @@
   const learnedCountEl = /** @type {HTMLElement} */ (document.getElementById('learned-count'));
   const learnedBox = /** @type {HTMLDetailsElement} */ (document.getElementById('learned-box'));
   const focusEl = /** @type {HTMLElement} */ (document.getElementById('focus'));
+  const areasEl = /** @type {HTMLElement} */ (document.getElementById('areas'));
   const tipEl = /** @type {HTMLElement} */ (document.getElementById('tip'));
+  const searchEl = /** @type {HTMLInputElement} */ (document.getElementById('search'));
+  const recordEl = /** @type {HTMLElement} */ (document.getElementById('record'));
+  const resultsEl = /** @type {HTMLElement} */ (document.getElementById('results'));
+  const mainEl = /** @type {HTMLElement} */ (document.getElementById('main'));
   /** @type {number | undefined} */
   let tipTime;
   focusEl.addEventListener('click', () => vscode.postMessage({ type: 'chooseFocus' }));
@@ -59,12 +64,14 @@
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] || c);
   }
 
-  function renderEntry(e, /** @type {boolean} */ known) {
+  /** `boostable`: show the ★ button (in the learning focus sections and search results). */
+  function renderEntry(e, /** @type {boolean} */ known, boostable = false) {
     return `
       <li class="row${known ? ' known' : ''}" data-cmd="${esc(e.command)}">
         <div class="entry">
           <div class="title-cell">
-            <span class="title" title="${esc(e.command)}">${esc(e.title)}</span>
+            <span class="title" title="${esc(titleTooltip(e))}">${esc(e.title)}</span>
+            ${boostable && !known ? `<button class="icon-btn boost-btn${e.boosted ? ' on' : ''}" title="${e.boosted ? 'Remove boost' : 'Boost – rank higher in “Useful Now”'}">${e.boosted ? '★' : '☆'}</button>` : ''}
             <button class="icon-btn edit-btn" title="Change shortcut in the Keyboard Shortcuts editor">✎</button>
             <button class="icon-btn known-btn" title="${known ? 'Undo – show in “Useful Now” and tips again' : 'Got it – remove from “Useful Now” and tips'}">${known ? '↺' : '✓'}</button>
           </div>
@@ -72,6 +79,15 @@
           <div class="keys">${e.keys.map((k, i) => `<span class="key">${i ? '<span class="or">or</span>' : ''}${renderKey(k)}</span>`).join('')}</div>
         </div>
       </li>`;
+  }
+
+  /** Command id plus the when clauses of its bindings, one per line. */
+  function titleTooltip(e) {
+    const whens = (e.whens || []).map((w) => w || 'always');
+    if (!whens.length) return e.command;
+    return whens.length === 1
+      ? `${e.command}\nwhen: ${whens[0]}`
+      : `${e.command}\nwhen:\n${whens.map((w) => `• ${w}`).join('\n')}`;
   }
 
   const GAP = 8; // must match the column gap of .entry
@@ -112,27 +128,175 @@
   }
   new ResizeObserver(scheduleLayout).observe(document.body);
 
-  function onRowClick(/** @type {boolean} */ known) {
-    return (/** @type {MouseEvent} */ e) => {
-      const target = /** @type {HTMLElement} */ (e.target);
-      const command = target.closest('.row')?.getAttribute('data-cmd');
-      if (!command) return;
-      if (target.closest('.known-btn')) vscode.postMessage({ type: 'known', command, known: !known });
-      else if (target.closest('.edit-btn')) vscode.postMessage({ type: 'edit', command });
-    };
+  function onRowClick(/** @type {MouseEvent} */ e) {
+    const target = /** @type {HTMLElement} */ (e.target);
+    const row = target.closest('.row');
+    const command = row?.getAttribute('data-cmd');
+    if (!row || !command) return;
+    const known = row.classList.contains('known');
+    if (target.closest('.known-btn')) vscode.postMessage({ type: 'known', command, known: !known });
+    else if (target.closest('.edit-btn')) vscode.postMessage({ type: 'edit', command });
+    else if (target.closest('.boost-btn')) {
+      vscode.postMessage({ type: 'boost', command, boosted: !target.closest('.boost-btn')?.classList.contains('on') });
+    }
   }
-  usefulEl.addEventListener('click', onRowClick(false));
+  usefulEl.addEventListener('click', onRowClick);
   tipEl.addEventListener('click', (e) => {
     if (/** @type {HTMLElement} */ (e.target).closest('.tip-close')) vscode.postMessage({ type: 'dismissTip' });
-    else onRowClick(false)(e);
+    else onRowClick(e);
   });
-  learnedEl.addEventListener('click', onRowClick(true));
+  areasEl.addEventListener('click', onRowClick);
+  learnedEl.addEventListener('click', onRowClick);
+  resultsEl.addEventListener('click', onRowClick);
 
-  learnedBox.open = !!(vscode.getState() || {}).learnedOpen;
+  /** @type {{ learnedOpen?: boolean, openAreas?: string[], query?: string }} */
+  const state = vscode.getState() || {};
+  const openAreas = new Set(state.openAreas || []);
+  function saveState() {
+    vscode.setState({ learnedOpen: learnedBox.open, openAreas: [...openAreas], query: recording ? '' : searchEl.value });
+  }
+
+  // The extension host searches; typing is debounced so that not every key press sends a request.
+  let searchTimer = 0;
+  searchEl.value = state.query || '';
+  searchEl.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      vscode.postMessage({ type: 'search', query: searchEl.value });
+      saveState();
+    }, 150);
+  });
+  searchEl.addEventListener('keydown', (e) => {
+    if (recording && e.key === 'Escape' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+      // The first Esc clears the recorded keys, the second one ends recording.
+      e.preventDefault();
+      if (recorded.length) {
+        recorded = [];
+        recordedLabels = [];
+        searchEl.value = '';
+        vscode.postMessage({ type: 'search', query: '' });
+      } else {
+        toggleRecording();
+      }
+    } else if (recording) {
+      recordKey(e);
+    } else if (e.key === 'Escape' && searchEl.value) {
+      searchEl.value = '';
+      searchEl.dispatchEvent(new Event('input'));
+    }
+  });
+
+  // --- Filter by shortcut ------------------------------------------------------
+  // While recording, key presses in the search field are turned into a key
+  // sequence (like "Record Keys" in the Keyboard Shortcuts editor).
+
+  let recording = false;
+  /** @type {{ mods: string[], mains: string[] }[]} per chord the modifiers and the accepted spellings of the main key */
+  let recorded = [];
+  /** @type {string[]} the chords as displayed */
+  let recordedLabels = [];
+
+  recordEl.addEventListener('click', toggleRecording);
+
+  function toggleRecording() {
+    recording = !recording;
+    recorded = [];
+    recordedLabels = [];
+    recordEl.classList.toggle('on', recording);
+    searchEl.value = '';
+    searchEl.readOnly = recording;
+    searchEl.placeholder = recording ? 'Press a shortcut …' : 'Search shortcuts by name, command or key …';
+    vscode.postMessage({ type: 'search', query: '' });
+    saveState();
+    searchEl.focus();
+  }
+
+  const CODE_KEYS = {
+    Equal: '=', Minus: '-', BracketLeft: '[', BracketRight: ']', Backslash: '\\', Semicolon: ';',
+    Quote: "'", Comma: ',', Period: '.', Slash: '/', Backquote: '`', IntlBackslash: 'oem_102',
+    ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+    NumpadAdd: 'numpad_add', NumpadSubtract: 'numpad_subtract', NumpadMultiply: 'numpad_multiply',
+    NumpadDivide: 'numpad_divide', NumpadDecimal: 'numpad_decimal', NumpadEnter: 'enter',
+  };
+  const MODIFIER_CODES = /^(Control|Shift|Alt|Meta|OS)(Left|Right)?$/;
+
+  /**
+   * The main key in VS Code's notation. Letters and digits follow the keyboard layout,
+   * as VS Code does; other keys use their position on a US keyboard.
+   */
+  function mainKey(/** @type {KeyboardEvent} */ e) {
+    if (/^[a-z0-9]$/i.test(e.key)) return e.key.toLowerCase();
+    if (CODE_KEYS[e.code]) return CODE_KEYS[e.code];
+    let m = /^(?:Key|Digit)(.)$/.exec(e.code);
+    if (m) return m[1].toLowerCase();
+    m = /^Numpad(\d)$/.exec(e.code);
+    if (m) return 'numpad' + m[1];
+    return e.code.toLowerCase(); // F1, Escape, Enter, Space, Tab, Backspace, Delete, Home, End, PageUp, …
+  }
+
+  function heldModifiers(/** @type {KeyboardEvent} */ e) {
+    return /** @type {string[]} */ ([e.ctrlKey && 'ctrl', e.shiftKey && 'shift', e.altKey && 'alt', e.metaKey && 'meta'].filter(Boolean));
+  }
+
+  /**
+   * Filters live while only modifiers are held: the next chord is matched with any
+   * main key, so holding Ctrl lists all Ctrl shortcuts and adding Shift narrows them.
+   */
+  function previewModifiers(/** @type {string[]} */ mods) {
+    // After two chords the next key press starts a new sequence.
+    const base = recorded.length === 2 ? [] : recorded;
+    const labels = recorded.length === 2 ? [] : recordedLabels;
+    if (!mods.length) {
+      searchEl.value = recordedLabels.join(' ');
+      vscode.postMessage({ type: 'search', keys: recorded });
+      return;
+    }
+    searchEl.value = [...labels, mods.map(keyLabel).join('+') + '+…'].join(' ');
+    vscode.postMessage({ type: 'search', keys: [...base, { mods, mains: [] }] });
+  }
+
+  function recordKey(/** @type {KeyboardEvent} */ e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const mods = heldModifiers(e);
+    if (MODIFIER_CODES.test(e.code)) {
+      if (!e.repeat) previewModifiers(mods);
+      return;
+    }
+    // A third chord starts a new sequence; VS Code has at most two.
+    if (recorded.length === 2) {
+      recorded = [];
+      recordedLabels = [];
+    }
+    const main = mainKey(e);
+    // Default bindings may name the physical key as scan code, e.g. "ctrl+[equal]".
+    recorded.push({ mods, mains: [...new Set([main, `[${e.code.toLowerCase()}]`])] });
+    recordedLabels.push([...mods, main].map(keyLabel).join('+'));
+    searchEl.value = recordedLabels.join(' ');
+    vscode.postMessage({ type: 'search', keys: recorded });
+  }
+
+  searchEl.addEventListener('keyup', (e) => {
+    // Releasing a modifier narrows the preview to the ones still held.
+    if (recording && MODIFIER_CODES.test(e.code)) previewModifiers(heldModifiers(e));
+  });
+
+  learnedBox.open = !!state.learnedOpen;
   learnedBox.addEventListener('toggle', () => {
-    vscode.setState({ learnedOpen: learnedBox.open });
+    saveState();
     scheduleLayout(); // hidden entries could not be measured while collapsed
   });
+
+  // "toggle" does not bubble, so it is caught in the capture phase.
+  areasEl.addEventListener('toggle', (e) => {
+    const box = /** @type {HTMLDetailsElement} */ (e.target);
+    const id = box.getAttribute('data-area');
+    if (!id) return;
+    if (box.open) openAreas.add(id);
+    else openAreas.delete(id);
+    saveState();
+    scheduleLayout();
+  }, true);
 
   window.addEventListener('message', (event) => {
     const msg = event.data;
@@ -147,10 +311,26 @@
     usefulEl.innerHTML = msg.useful.length
       ? msg.useful.map((e) => renderEntry(e, false)).join('')
       : '<li class="empty">Nothing new right now – everything relevant is already learned.</li>';
+    areasEl.innerHTML = msg.areaShortcuts.map((a) => `
+      <details class="section" data-area="${esc(a.id)}"${openAreas.has(a.id) ? ' open' : ''}>
+        <summary>Focus: ${esc(a.name)} (${a.entries.length})</summary>
+        <ul class="list">${a.entries.map((e) => renderEntry(e, !!e.known, true)).join('')}</ul>
+      </details>`).join('');
     learnedCountEl.textContent = String(msg.learned.length);
     learnedEl.innerHTML = msg.learned.map((e) => renderEntry(e, true)).join('');
+    renderResults(msg.results, msg.resultCount);
     layoutEntries();
   });
+
+  function renderResults(results, /** @type {number} */ count) {
+    resultsEl.hidden = !results;
+    mainEl.hidden = !!results;
+    if (!results) return;
+    resultsEl.innerHTML = results.length
+      ? results.map((e) => renderEntry(e, !!e.known, true)).join('') +
+        (count > results.length ? `<li class="empty">${count - results.length} more – refine the search to see them.</li>` : '')
+      : '<li class="empty">No shortcut matches.</li>';
+  }
 
   function renderTip(tip) {
     tipEl.hidden = !tip;
@@ -178,4 +358,5 @@
   }, 30000);
 
   vscode.postMessage({ type: 'ready' });
+  if (searchEl.value) vscode.postMessage({ type: 'search', query: searchEl.value });
 })();

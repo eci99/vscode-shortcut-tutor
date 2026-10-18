@@ -195,6 +195,16 @@ const DEFAULTS: Reason[] = [
 
   // --- Situation signals -------------------------------------------------------
   {
+    id: 'boosted',
+    kind: 'signal',
+    name: 'Boosted by you',
+    description: 'Shortcuts you boosted with ★ in a learning focus section of the view. Always active.',
+    enabled: true,
+    label: 'Boosted',
+    params: { boost: p('Bonus for newly boosted shortcuts', 8) },
+    commands: {},
+  },
+  {
     id: 'unsaved',
     kind: 'signal',
     name: 'Unsaved changes',

@@ -3,7 +3,7 @@
   "displayName": "Shortcut Tutor",
   "description": "Shows the keyboard shortcuts most worth learning right now and gives tips when something would be faster with a shortcut.",
   "icon": "media/icon.png",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "eci99",
   "author": {
     "name": "Janos Kovac"

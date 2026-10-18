@@ -45,6 +45,51 @@ button:hover {
   opacity: 0.7;
 }
 
+.search {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.15));
+}
+
+.search input {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  font: inherit;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 2px;
+  outline: none;
+}
+
+.search input:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.record {
+  padding: 0 6px;
+  color: var(--vscode-foreground);
+  background: transparent;
+  font-size: 1.1em;
+}
+
+.record.on {
+  color: var(--vscode-inputOption-activeForeground);
+  background: var(--vscode-inputOption-activeBackground);
+  outline: 1px solid var(--vscode-inputOption-activeBorder, transparent);
+}
+
+.search input::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+[hidden] {
+  display: none !important;
+}
+
 .tip {
   margin: 6px 8px;
   border: 1px solid var(--vscode-editorWarning-foreground, #cca700);
@@ -150,8 +195,13 @@ button:hover {
 }
 
 .row:hover .icon-btn,
-.row:focus-within .icon-btn {
+.row:focus-within .icon-btn,
+.boost-btn.on {
   visibility: visible;
+}
+
+.boost-btn.on {
+  color: var(--vscode-editorWarning-foreground, #cca700);
 }
 
 .keys {
@@ -221,7 +271,11 @@ kbd {
   border: 1px solid var(--vscode-textLink-foreground);
 }
 
-.learned summary {
+.section + .section summary {
+  border-top: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.15));
+}
+
+.section summary {
   padding: 6px 12px;
   cursor: pointer;
   user-select: none;
