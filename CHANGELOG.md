@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.3] – 2026-10-31
+
+### Changed
+
+- Published from GitHub Actions to the VS Code Marketplace and Open VSX. The package no longer contains the GitHub workflow.
+
 ## [0.1.2] – 2026-10-18
 
 ### Added
