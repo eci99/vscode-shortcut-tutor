@@ -138,7 +138,8 @@
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "npx --yes @vscode/vsce package"
+    "package": "npx --yes @vscode/vsce package",
+    "vscode:prepublish": "npm run compile"
   },
   "dependencies": {
     "jsonc-parser": "^3.3.1"
