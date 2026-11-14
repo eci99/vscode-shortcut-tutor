@@ -3,7 +3,7 @@
   "displayName": "Shortcut Tutor",
   "description": "Shows the keyboard shortcuts most worth learning right now and gives tips when something would be faster with a shortcut.",
   "icon": "media/icon.png",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "publisher": "eci99",
   "author": {
     "name": "Janos Kovac"
@@ -29,6 +29,15 @@
     "onStartupFinished"
   ],
   "contributes": {
+    "languages": [
+      {
+        "id": "shortcut-practice",
+        "aliases": [
+          "Shortcut Practice"
+        ],
+        "configuration": "./media/practice-language.json"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -59,6 +68,18 @@
         "category": "Shortcut Tutor"
       },
       {
+        "command": "shortcutTutor.practice",
+        "title": "Start Practice",
+        "category": "Shortcut Tutor",
+        "icon": "$(mortar-board)"
+      },
+      {
+        "command": "shortcutTutor.practiceNext",
+        "title": "Next Practice Task",
+        "category": "Shortcut Tutor",
+        "enablement": "shortcutTutor.practiceResult"
+      },
+      {
         "command": "shortcutTutor.chooseFocus",
         "title": "Choose Learning Focus",
         "category": "Shortcut Tutor",
@@ -76,6 +97,11 @@
         "command": "shortcutTutor.toggle",
         "key": "ctrl+alt+shift+k",
         "mac": "cmd+alt+shift+k"
+      },
+      {
+        "command": "shortcutTutor.practiceNext",
+        "key": "enter",
+        "when": "shortcutTutor.practiceResult && editorTextFocus"
       }
     ],
     "configuration": {
@@ -123,6 +149,11 @@
     "menus": {
       "view/title": [
         {
+          "command": "shortcutTutor.practice",
+          "when": "view == shortcutTutor.view",
+          "group": "navigation@0"
+        },
+        {
           "command": "shortcutTutor.chooseFocus",
           "when": "view == shortcutTutor.view",
           "group": "navigation@1"
@@ -138,6 +169,7 @@
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "test": "tsc -p ./ && node --test \"out/**/*.test.js\"",
     "package": "npx --yes @vscode/vsce package",
     "vscode:prepublish": "npm run compile"
   },

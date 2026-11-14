@@ -91,6 +91,12 @@ The **gear button** in the view's title bar (or **Shortcut Tutor: Edit Reasons**
 
 Changes are saved immediately. Only differences from the defaults are stored, in the `shortcutTutor.reasons` setting. **Reset** restores a single reason, **Reset All** restores everything.
 
+### Practice
+
+The **mortar board button** in the view's title bar (or **Shortcut Tutor: Start Practice**) opens a practice editor. Each round has 14 tasks in random order; at the end you can start another 14. A comment at the top describes a task, e.g. “Duplicate the line”, and shows the shortcut that solves it. Do the task in the editor: it turns green with “✓ Done with …”, and after 10 seconds (or right away with `Enter`) the next task appears. There are 44 tasks: editing (move, duplicate, delete, comment and indent lines, delete words, multiple cursors, find and replace, folding, jumping and selecting) and workbench (new terminal, split editor, quick open, new file).
+
+If you solve a task by hand, with the mouse or with many key presses, you are asked to repeat it once with the shortcut. At the end you can mark the shortcuts you used as learned. Tasks whose command has no shortcut are skipped.
+
 ## Settings
 
 | Setting | Default | Description |
@@ -114,6 +120,7 @@ Example: `Ctrl+Shift+[Equal]` is shown as `Ctrl+Shift+´` on a German keyboard.
 - **Focus is assumed to be in the editor.** VS Code does not reveal where keyboard focus is, so shortcuts for the terminal or lists are not boosted by focus.
 - **Context keys from other extensions** cannot be read. Shortcuts that depend on them are never hidden, but they are not boosted either.
 - **Filter by shortcut and punctuation keys:** since the keyboard layout cannot be read, punctuation keys are matched by their US position. On other layouts a recorded punctuation key may find the wrong shortcuts.
+- **Practice checks the result, not the keys.** A task counts as done with the shortcut if it was solved without the mouse and with at most 4 edits or cursor moves. Workbench tasks cannot tell mouse from keyboard.
 - **Areas are derived from command IDs.** Commands of extensions with their own namespace (e.g. `markdown.*`) belong to no area.
 - **Settings profiles:** only the `keybindings.json` of the default profile is read.
 

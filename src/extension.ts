@@ -7,6 +7,7 @@ import { NudgeTracker } from './nudges';
 import { invalidateReasons, reason, saveReason } from './reasons';
 import { AREAS_FOR_SELECTION, areaOf } from './areas';
 import { CommandInfo, ReasonsEditor } from './reasonsEditor';
+import { practiceNext, startPractice } from './practice';
 
 const KNOWN_KEY = 'shortcutTutor.known';
 /** Search results beyond this are left out to keep the view fast. */
@@ -72,6 +73,29 @@ class ShortcutViewProvider implements vscode.WebviewViewProvider {
     const bindings = this.shortcuts.filter((s) => s.command === command);
     const best = bindings.find((s) => s.source === 'user') ?? bindings[0];
     return best && { title: best.title, key: formatKey(best.key) };
+  }
+
+  /**
+   * Like describe(), but prefers a key that no other command uses in the current
+   * context; if every key is shared, lists the titles of the other commands.
+   */
+  practiceHint(command: string): { title: string; key: string; conflicts: string[] } | undefined {
+    const ctx = buildContext();
+    const bindings = this.shortcuts
+      .filter((s) => s.command === command && s.key && isRelevant(s.when, ctx))
+      .sort((a, b) => Number(b.source === 'user') - Number(a.source === 'user'));
+    const options = bindings.map((b) => ({
+      title: b.title,
+      key: formatKey(b.key),
+      conflicts: [
+        ...new Set(
+          this.shortcuts
+            .filter((s) => s.key === b.key && s.command !== command && isRelevant(s.when, ctx))
+            .map((s) => s.title),
+        ),
+      ],
+    }));
+    return options.find((o) => !o.conflicts.length) ?? options[0];
   }
 
   /** Title and key of every command with a shortcut, for the Reasons editor. */
@@ -363,6 +387,13 @@ export function activate(context: vscode.ExtensionContext): void {
         : vscode.commands.executeCommand(`${ShortcutViewProvider.viewId}.focus`),
     ),
     vscode.commands.registerCommand('shortcutTutor.chooseFocus', chooseFocus),
+    vscode.commands.registerCommand('shortcutTutor.practiceNext', practiceNext),
+    vscode.commands.registerCommand('shortcutTutor.practice', () =>
+      startPractice(
+        (command) => provider.practiceHint(command),
+        (command) => provider.setKnown(command, true),
+      ),
+    ),
     vscode.commands.registerCommand('shortcutTutor.editReasons', () =>
       ReasonsEditor.show(context.extensionUri, () => provider.commandInfo()),
     ),

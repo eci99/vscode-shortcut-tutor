@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] – 2026-11-14
+
+### Added
+
+- **Practice** mode (**Shortcut Tutor: Start Practice** or the mortar board button in the view): an editor with rounds of 14 random tasks to solve with shortcuts, checked by the result. Shortcuts used correctly can be marked as learned at the end.
+- 44 practice tasks: editing, selecting, multiple cursors, find and replace, folding and workbench tasks. The result stays visible for 10 seconds; `Enter` moves on right away.
+- The practice hint prefers a key that no other command uses and warns if the key is also bound to another command.
+
 ## [0.1.3] – 2026-10-31
 
 ### Changed

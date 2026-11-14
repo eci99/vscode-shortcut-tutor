@@ -5,3 +5,5 @@ src/**
 tsconfig.json
 media/icon.svg
 docs/**
+graphify-out/**
+out/**/*.test.js
